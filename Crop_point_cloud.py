@@ -35,3 +35,8 @@ vis.add_geometry(cropped_box)
 vis.add_geometry(cropped_point_cloud)
 vis.add_geometry(mesh_frame)
 vis.run()
+
+"""
+保存下来处理好的点云文件
+"""
+#o3d.io.write_point_cloud("Aircraft_tail/Tail_1_cropped.pcd", cropped_point_cloud)
