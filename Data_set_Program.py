@@ -1,11 +1,18 @@
 """
 Author: Jun Cheng
-Date: 2024.3.15
+Date: 2024.4.1
 
 此程序可以实现以下功能：
 1，将点云格式从.csv转换成.pcd文件并保存
 2，求解旋转矩阵并保存，方便构建数据集
 3，利用旋转矩阵实现配准并可视化
+
+更新：
+完成由于旋转自动产生的位移矩阵计算；
+
+注意！！！！ 必须先绕Z轴旋转，之后是X，Y；
+
+是将目标点云配准到源点云，所以测量的第一个是目标点云，第二个才是源点云。
 """
 import numpy
 import open3d
@@ -48,6 +55,10 @@ def euler_to_rotation_matrix(yaw, pitch, roll):
     roll_rad = np.radians(roll)
 
     # Calculate rotation matrix
+    r_z = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad), 0],
+                    [np.sin(yaw_rad), np.cos(yaw_rad), 0],
+                    [0, 0, 1]])
+
     r_x = np.array([[1, 0, 0],
                     [0, np.cos(roll_rad), -np.sin(roll_rad)],
                     [0, np.sin(roll_rad), np.cos(roll_rad)]])
@@ -56,16 +67,20 @@ def euler_to_rotation_matrix(yaw, pitch, roll):
                     [0, 1, 0],
                     [-np.sin(pitch_rad), 0, np.cos(pitch_rad)]])
 
-    r_z = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad), 0],
-                    [np.sin(yaw_rad), np.cos(yaw_rad), 0],
-                    [0, 0, 1]])
-
-    # Combine the rotations in XYZ order
-
-    r = np.dot(r_x, np.dot(r_y, r_z))
-
+    # Combine the rotations in ZXY order
+    
+    r = np.dot(r_z, np.dot(r_x, r_y))
     return r
 
+def calculate_accompany_t(alpha,beta):
+    """
+    alpha: 绕X轴的角度，注意正负
+    beta: 绕Y轴的角度，注意正负
+    """
+    angle_x = np.radians(alpha)
+    angle_y = np.radians(beta)
+    t = np.array([np.sin(angle_y) * 0.1014, -((0.1014*np.cos(angle_y)+0.015)*np.sin(angle_x)), -(0.11640-((0.1014*np.cos(angle_y)+0.015)*np.cos(angle_x)))])
+    return t
 
 # 点云变换函数
 def transform(pc, r, t: object = None) -> object:
@@ -75,30 +90,34 @@ def transform(pc, r, t: object = None) -> object:
     return pc
 
 
-Csv_path_1 = 'Aircraft_tail/Tail_1.csv'
-Pcd_path_1 = 'Aircraft_tail/Tail_1.pcd'
-Csv_path_2 = 'Aircraft_tail/Tail_2.csv'
-Pcd_path_2 = 'Aircraft_tail/Tail_2.pcd'
+"""
+下面是要输入的路径，请输入这四个；
+"""
+Csv_path_1 = 'test/test1.csv'
+Pcd_path_1 = 'test/test1.pcd'
+Csv_path_2 = 'test/test2.csv'
+Pcd_path_2 = 'test/test2.pcd'
 points_to_pcd(csv_path=Csv_path_1, pcd_path=Pcd_path_1)
 points_to_pcd(csv_path=Csv_path_2, pcd_path=Pcd_path_2)
 
-Z_angle = 0  # 偏航角Z
-Y_angle = -16  # 俯仰角Y
-X_angle = -16  # 滚转角X
+Z_angle = 10  # 偏航角Z
+X_angle = 15  # 滚转角X
+Y_angle = 15  # 俯仰角Y
 
-rotation_matrix = euler_to_rotation_matrix(Z_angle, Y_angle, X_angle)
+rotation_matrix = euler_to_rotation_matrix(Z_angle, X_angle, Y_angle)
 
 R = rotation_matrix
-T = np.asarray([0, 0, 0])
+T_accompany= calculate_accompany_t(X_angle,Y_angle)
+T = np.asarray([0, 0, 0]) + T_accompany
 
+"""
+保存齐次矩阵；首先需要可视化一下，看看配准效果，之后保存转换矩阵到指定位置；
+"""
 np.vstack((R, [0, 0, 0]))
 np.hstack((T, np.array([1])))
 Homogeneous_Transformation_Matrix = np.hstack((np.vstack((R, [0, 0, 0])), np.hstack((T, np.array([1])))[:, np.newaxis]))
-# 创建 DataFrame 对象
 df = pd.DataFrame(Homogeneous_Transformation_Matrix)
-
-# 保存 DataFrame 到 CSV 文件
-df.to_csv('Aircraft_tail/Tail_1_to_Tail_2.csv', index=False, header=False)
+# df.to_csv('Aircraft_tail/Tail_1_to_Tail_2.csv', index=False, header=False)
 
 # 目标点云
 target_pcd = open3d.io.read_point_cloud(Pcd_path_1)
@@ -130,12 +149,12 @@ opt.background_color = np.array([255, 255, 255])
 opt.point_size = 2.0
 # 添加点云
 """"""""
-aabb = target_pcd.get_axis_aligned_bounding_box()
+aabb = target_pcd.get_axis_aligned_bounding_box()   # 用一个轴对称方框把点云框起来；
 box_points = aabb.get_box_points()
 print(numpy.asarray(box_points))
 
 aabb.color = (1, 0, 0)
-mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])
+mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])  # 生成坐标系，方便之后的裁剪；
 
 """"""""
 vis.add_geometry(source_pcd)
