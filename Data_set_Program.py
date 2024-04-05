@@ -48,11 +48,11 @@ def points_to_pcd(csv_path, pcd_path):
 
 
 # 完成对旋转矩阵的求解
-def euler_to_rotation_matrix(yaw, pitch, roll):
+def euler_to_rotation_matrix(yaw, roll, pitch):
     # Convert degrees to radians
-    yaw_rad = np.radians(yaw)
-    pitch_rad = np.radians(pitch)
-    roll_rad = np.radians(roll)
+    yaw_rad = np.radians(yaw)   # z
+    pitch_rad = np.radians(pitch)  # y
+    roll_rad = np.radians(roll) # x
 
     # Calculate rotation matrix
     r_z = np.array([[np.cos(yaw_rad), -np.sin(yaw_rad), 0],
