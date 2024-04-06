@@ -14,7 +14,7 @@ Date: 2024.4.1
 
 是将目标点云配准到源点云，所以测量的第一个是目标点云，第二个才是源点云。
 """
-import numpy
+
 import open3d
 import pandas as pd
 import numpy as np
@@ -151,7 +151,7 @@ opt.point_size = 2.0
 """"""""
 aabb = target_pcd.get_axis_aligned_bounding_box()   # 用一个轴对称方框把点云框起来；
 box_points = aabb.get_box_points()
-print(numpy.asarray(box_points))
+print(np.asarray(box_points))
 
 aabb.color = (1, 0, 0)
 mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])  # 生成坐标系，方便之后的裁剪；
