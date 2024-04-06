@@ -77,7 +77,7 @@ def transform(pc, r, t: object = None) -> object:
         pc = pc + t
     return pc
 
-def visualize_transformed_cloud(csv_path, source_points, target_pcd):
+def visualize_transformed_cloud(csv_path, Pcd_path_1, Pcd_path_2):
     """_summary_
 
     Args:
@@ -85,6 +85,11 @@ def visualize_transformed_cloud(csv_path, source_points, target_pcd):
         source_points (源点云): 源点云
         target_pcd (目标点云): 目标点云
     """
+    # 目标点云和源点云
+    target_pcd = open3d.io.read_point_cloud(Pcd_path_1)
+    target_points = np.asarray(target_pcd.points)
+    source_pcd = open3d.io.read_point_cloud(Pcd_path_2)
+    source_points = np.asarray(source_pcd.points)
 
     # 读取齐次旋转平移矩阵
     Homogeneous_Transformation_Matrix = pd.read_csv(csv_path, header=None).values
@@ -122,7 +127,22 @@ def visualize_transformed_cloud(csv_path, source_points, target_pcd):
     vis.destroy_window()
 
 
-def transform_and_visualize(source_points, source_pcd, target_pcd, R, T):
+def transform_and_visualize(Csv_path_1, Csv_path_2, Pcd_path_1, Pcd_path_2, Z_angle, X_angle, Y_angle):
+    
+    points_to_pcd(csv_path=Csv_path_1, pcd_path=Pcd_path_1)
+    points_to_pcd(csv_path=Csv_path_2, pcd_path=Pcd_path_2)
+
+
+    # 目标点云和源点云
+    target_pcd = open3d.io.read_point_cloud(Pcd_path_1)
+    target_points = np.asarray(target_pcd.points)
+    source_pcd = open3d.io.read_point_cloud(Pcd_path_2)
+    source_points = np.asarray(source_pcd.points)
+
+    R = euler_to_rotation_matrix(Z_angle, X_angle, Y_angle)
+    T_accompany= calculate_accompany_t(X_angle,Y_angle)
+    T = np.asarray([0, 0, 0]) + T_accompany
+
     # 将源点云变换到目标点云坐标系
     transform_points = transform(source_points, R, T)
     pcd_transform = open3d.geometry.PointCloud()
@@ -162,9 +182,13 @@ def transform_and_visualize(source_points, source_pcd, target_pcd, R, T):
     vis.destroy_window()
 
 
-def save_homogeneous_matrix(R, T, csv_path):
+def save_homogeneous_matrix(csv_path, Z_angle, X_angle, Y_angle):
+    R = euler_to_rotation_matrix(Z_angle, X_angle, Y_angle)
+    T_accompany= calculate_accompany_t(X_angle,Y_angle)
+    T = np.asarray([0, 0, 0]) + T_accompany
     np.vstack((R, [0, 0, 0]))
     np.hstack((T, np.array([1])))
     Homogeneous_Transformation_Matrix = np.hstack((np.vstack((R, [0, 0, 0])), np.hstack((T, np.array([1])))[:, np.newaxis]))
     df = pd.DataFrame(Homogeneous_Transformation_Matrix)
     df.to_csv(csv_path, index=False, header=False)
+    print(f'已经保存齐次旋转平移矩阵{csv_path}')

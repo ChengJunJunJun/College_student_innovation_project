@@ -26,39 +26,25 @@ from function import euler_to_rotation_matrix, \
     save_homogeneous_matrix
 
 """
-下面是要输入的路径，请输入这五个；
+请输入数据
 """
+Z_angle = 10  # 偏航角Z
+X_angle = 15  # 滚转角X
+Y_angle = 15  # 俯仰角Y
 Csv_path_1 = 'test/test1.csv'
 Pcd_path_1 = 'test/test1.pcd'
 Csv_path_2 = 'test/test2.csv'
 Pcd_path_2 = 'test/test2.pcd'
-Homogeneous_Transformation_Matrix_path = 'test/test12.csv'
-points_to_pcd(csv_path=Csv_path_1, pcd_path=Pcd_path_1)
-points_to_pcd(csv_path=Csv_path_2, pcd_path=Pcd_path_2)
-
-Z_angle = 10  # 偏航角Z
-X_angle = 15  # 滚转角X
-Y_angle = 15  # 俯仰角Y
-
-R = euler_to_rotation_matrix(Z_angle, X_angle, Y_angle)
-T_accompany= calculate_accompany_t(X_angle,Y_angle)
-T = np.asarray([0, 0, 0]) + T_accompany
-
-# 目标点云
-target_pcd = open3d.io.read_point_cloud(Pcd_path_1)
-target_points = np.asarray(target_pcd.points)
-
-# 源点云
-source_pcd = open3d.io.read_point_cloud(Pcd_path_2)
-source_points = np.asarray(source_pcd.points)
+Homogeneous_Transformation_Matrix_path = 'test/1-2.csv'
 
 
 
-# 用于可视化
-transform_and_visualize(source_points, source_pcd, target_pcd, R, T)
 
 """
-保存齐次矩阵；首先需要可视化一下，看看配准效果，之后保存转换矩阵到指定位置；
+1, 第一个函数，实现单纯的可视化，看看能不能配起来
+2，第二个函数，实现保存可以配起来的齐次平移旋转矩阵
+3，第三个函数，可视化保存下来的矩阵乘源点云，用于测试
 """
-# save_homogeneous_matrix(R, T, Homogeneous_Transformation_Matrix_path)
-# visualize_transformed_cloud(Homogeneous_Transformation_Matrix_path, source_points, target_pcd)
+# transform_and_visualize(Csv_path_1, Csv_path_2, Pcd_path_1, Pcd_path_2, Z_angle, X_angle, Y_angle)
+# save_homogeneous_matrix(Homogeneous_Transformation_Matrix_path, Z_angle, X_angle, Y_angle)
+visualize_transformed_cloud(Homogeneous_Transformation_Matrix_path, Pcd_path_1, Pcd_path_2)
