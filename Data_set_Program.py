@@ -31,10 +31,14 @@ from function import euler_to_rotation_matrix, \
 Z_angle = 10  # 偏航角Z
 X_angle = 15  # 滚转角X
 Y_angle = 15  # 俯仰角Y
+
+# 请注意，第一个点云是目标点云
 Csv_path_1 = 'test/test1.csv'
 Pcd_path_1 = 'test/test1.pcd'
+# 第二个点云是源点云
 Csv_path_2 = 'test/test2.csv'
 Pcd_path_2 = 'test/test2.pcd'
+# 保存旋转矩阵
 Homogeneous_Transformation_Matrix_path = 'test/1-2.csv'
 
 

@@ -91,6 +91,25 @@ def visualize_transformed_cloud(csv_path, Pcd_path_1, Pcd_path_2):
     source_pcd = open3d.io.read_point_cloud(Pcd_path_2)
     source_points = np.asarray(source_pcd.points)
 
+    aabb1 = target_pcd.get_axis_aligned_bounding_box()   # 用一个轴对称方框把点云框起来；
+    min_bound = aabb1.get_min_bound()
+    max_bound = aabb1.get_max_bound()
+
+    print("target_pcd Min bound:", min_bound)
+    print("target_pcd Max bound:", max_bound)
+
+    aabb2 = source_pcd.get_axis_aligned_bounding_box()   # 用一个轴对称方框把点云框起来；
+    min_bound = aabb2.get_min_bound()
+    max_bound = aabb2.get_max_bound()
+
+    print("source_pcd Min bound:", min_bound)
+    print("source_pcd Max bound:", max_bound)
+
+    aabb1.color = (0, 0, 1) # 蓝色
+    aabb2.color = (0, 1, 0) # 绿色
+
+    mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])  # 生成坐标系，方便之后的裁剪；
+
     # 读取齐次旋转平移矩阵
     Homogeneous_Transformation_Matrix = pd.read_csv(csv_path, header=None).values
 
@@ -111,14 +130,28 @@ def visualize_transformed_cloud(csv_path, Pcd_path_1, Pcd_path_2):
 
     # 设置点云的颜色
     transformed_source_cloud_pcd.paint_uniform_color([1, 0, 0])  # 红色
+    source_pcd.paint_uniform_color([0, 1, 0])  # 绿色
     target_pcd.paint_uniform_color([0, 0, 1])  # 蓝色
+
     # 创建一个Visualizer对象
     vis = open3d.visualization.Visualizer()
-    vis.create_window()
+    
+    # 创建窗口，设置窗口标题
+    vis.create_window(window_name="point_cloud")
+    # 设置点云渲染参数
+    opt = vis.get_render_option()
+    # 设置背景色（这里为白色）
+    opt.background_color = np.array([255, 255, 255])
+    # 设置渲染点的大小
+    opt.point_size = 2.0
 
     # 添加几何体到Visualizer
     vis.add_geometry(transformed_source_cloud_pcd)
     vis.add_geometry(target_pcd)
+    vis.add_geometry(source_pcd)
+    vis.add_geometry(aabb2)
+    vis.add_geometry(aabb1)
+    vis.add_geometry(mesh_frame)
 
     # 运行Visualizer
     vis.run()
@@ -163,19 +196,10 @@ def transform_and_visualize(Csv_path_1, Csv_path_2, Pcd_path_1, Pcd_path_2, Z_an
     opt.background_color = np.array([255, 255, 255])
     # 设置渲染点的大小
     opt.point_size = 2.0
-    # 添加点云
-    """"""""
-    aabb = target_pcd.get_axis_aligned_bounding_box()   # 用一个轴对称方框把点云框起来；
-    box_points = aabb.get_box_points()
-    print(np.asarray(box_points))
-
-    aabb.color = (1, 0, 0)
-    mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])  # 生成坐标系，方便之后的裁剪；
+    # 添加点云到窗口
 
     """"""""
     vis.add_geometry(source_pcd)
-    vis.add_geometry(aabb)
-    vis.add_geometry(mesh_frame)
     vis.add_geometry(target_pcd)
     vis.add_geometry(pcd_transform)
     vis.run()
@@ -192,3 +216,37 @@ def save_homogeneous_matrix(csv_path, Z_angle, X_angle, Y_angle):
     df = pd.DataFrame(Homogeneous_Transformation_Matrix)
     df.to_csv(csv_path, index=False, header=False)
     print(f'已经保存齐次旋转平移矩阵{csv_path}')
+
+
+def croppointcloud(Pcd_path, min_bound, max_bound, save_path, should_save = False):
+    
+    
+    cropped_box = open3d.geometry.AxisAlignedBoundingBox(min_bound, max_bound)
+    """
+    下面这段可以改进一下
+    """
+    pcd = open3d.io.read_point_cloud(Pcd_path)
+    cropped_point_cloud = pcd.crop(cropped_box)
+    pcd = open3d.io.read_point_cloud(Pcd_path)
+    mesh_frame = open3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 0])
+    """
+    实现可视化效果，从而选择是不是要对点云进行裁剪
+    注：坐标轴X，Y，Z分别对应颜色红，绿，蓝
+    """
+    pcd.paint_uniform_color([0, 1, 0])  # 绿色
+    cropped_point_cloud.paint_uniform_color([0, 0, 1])  # 蓝色
+    cropped_box.color = (1, 0, 0)  # 红色
+    vis = open3d.visualization.Visualizer()
+    vis.create_window(window_name="point_cloud")
+    opt = vis.get_render_option()
+    opt.background_color = np.array([255, 255, 255])
+    opt.point_size = 2.0
+    vis.add_geometry(pcd)
+    vis.add_geometry(cropped_box)
+    vis.add_geometry(cropped_point_cloud)
+    vis.add_geometry(mesh_frame)
+    vis.run()
+    # 销毁Visualizer窗口
+    vis.destroy_window()
+    if should_save:
+        open3d.io.write_point_cloud(save_path, cropped_point_cloud)
